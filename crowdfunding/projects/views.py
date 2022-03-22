@@ -1,4 +1,5 @@
 from django.http import Http404
+from django.db.models import Max, Count
 from rest_framework import status, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -37,6 +38,22 @@ class ProjectList(APIView):
 
     def get(self, request):
         projects = Project.objects.all()
+        order_by = request.query_params.get('order_by', None)
+        # order by most recent pledges
+        if order_by == 'recent_pledges':
+            projects = Project.objects.annotate(
+                pledge_date=Max('pledges__date_created')
+            ).order_by(
+                '-pledge_date'
+            )
+        # order by number of pledges
+        if order_by == 'num_pledges':
+            projects = Project.objects.annotate(
+                pledge_count=Count('pledges')
+            ).order_by(
+                '-pledge_count'
+            )
+
         serializer = ProjectSerializer(projects, many=True)
         return Response(serializer.data)
 
