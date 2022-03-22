@@ -37,6 +37,9 @@ class ProjectList(APIView):
         is_open = request.query_params.get('is_open', None)
         if is_open:
             projects = projects.filter(is_open=is_open)
+        order_by = request.query_params.get('order_by', None)
+        if order_by:
+            projects = projects.order_by(order_by)
         serializer = ProjectSerializer(projects, many=True)
         return Response(serializer.data)
 
