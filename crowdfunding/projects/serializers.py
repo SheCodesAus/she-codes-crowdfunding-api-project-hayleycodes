@@ -1,5 +1,6 @@
 from unittest.util import _MAX_LENGTH
 from rest_framework import serializers
+from django.db.models import Sum
 from .models import Project, Pledge
 
 
@@ -31,6 +32,13 @@ class ProjectSerializer(serializers.Serializer):
 
 class ProjectDetailSerializer(ProjectSerializer):
     pledges = PledgeSerializer(many=True, read_only=True)
+    total_pledged = serializers.SerializerMethodField()
+
+    def get_total_pledged(self, obj):
+        return Project.objects.filter(pk=obj.id).annotate(
+            total_pledged=Sum('pledges__amount')
+        )[0].total_pledged
+        
 
     def update(self, instance, validated_data):
         instance.title = validated_data.get('title', instance.title)
