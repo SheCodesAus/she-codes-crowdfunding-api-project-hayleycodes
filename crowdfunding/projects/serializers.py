@@ -1,5 +1,6 @@
 from unittest.util import _MAX_LENGTH
 from rest_framework import serializers
+from django.db.models import Sum
 from .models import Project, Pledge
 
 
@@ -8,7 +9,8 @@ class PledgeSerializer(serializers.Serializer):
     amount = serializers.IntegerField()
     comment = serializers.CharField(max_length=200)
     anonymous = serializers.BooleanField()
-    supporter = serializers.CharField(max_length=200)
+    date_created = serializers.ReadOnlyField()
+    supporter = serializers.ReadOnlyField(source='supporter.id')
     project_id = serializers.IntegerField()
 
     def create(self, validated_data):
@@ -22,11 +24,15 @@ class ProjectSerializer(serializers.Serializer):
     goal = serializers.IntegerField()
     image = serializers.URLField()
     is_open = serializers.BooleanField()
-    date_created = serializers.DateTimeField()
-    # owner = serializers.CharField(max_length=200)
+    date_created = serializers.ReadOnlyField()
     owner = serializers.ReadOnlyField(source='owner.id')
-    # pledges = PledgeSerializer(many=True, read_only=True)
+    total_pledged = serializers.SerializerMethodField()
 
+    def get_total_pledged(self, obj):
+        return Project.objects.filter(pk=obj.id).annotate(
+            total_pledged=Sum('pledges__amount')
+        )[0].total_pledged
+    
     def create(self, validated_data):
         return Project.objects.create(**validated_data)
 
